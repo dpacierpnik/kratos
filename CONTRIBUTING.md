@@ -170,7 +170,7 @@ request, go through this checklist:
 1. [Rebase](http://git-scm.com/book/en/Git-Branching-Rebasing) your local
    changes against the `master` branch.
 1. Run the full project test suite with the `go test -tags sqlite ./...` (or
-   equivalent) command and confirm that it passes.
+   equivalent) command and confirm that it passes. (*Docker is required)
 1. Run `make format`
 1. Add a descriptive prefix to commits. This ensures a uniform commit history
    and helps structure the changelog. Please refer to this
@@ -245,7 +245,7 @@ git checkout master
 git pull --rebase
 
 # Next you create a new feature branch off of master:
-git checkout my-feature-branch
+git checkout -b my-feature-branch
 
 # Now you do your work and commit your changes:
 git add -A

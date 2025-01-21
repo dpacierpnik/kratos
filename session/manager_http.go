@@ -5,6 +5,8 @@ package session
 
 import (
 	"context"
+	"github.com/ory/kratos/session/impossibletravel/crosscountry"
+	"github.com/ory/kratos/session/impossibletravel/detector"
 	"net/http"
 	"net/url"
 	"time"
@@ -42,6 +44,13 @@ import (
 
 var ErrNoAALAvailable = herodot.ErrForbidden.WithReasonf("Unable to detect available authentication methods. Perform account recovery or contact support.")
 
+type ImpossibleTravelDetector interface {
+	DetectImpossibleTravel(
+		identityID uuid.UUID,
+		currentVisit detector.Visit[crosscountry.Country],
+	) detector.DetectionResult
+}
+
 type (
 	managerHTTPDependencies interface {
 		config.Provider
@@ -55,6 +64,7 @@ type (
 		x.TransactionPersistenceProvider
 		PersistenceProvider
 		sessiontokenexchange.PersistenceProvider
+		ImpossibleTravelDetector
 	}
 	ManagerHTTP struct {
 		cookieName func(ctx context.Context) string
@@ -470,12 +480,24 @@ func (s *ManagerHTTP) ActivateSession(r *http.Request, session *Session, i *iden
 	session.ExpiresAt = authenticatedAt.Add(s.r.Config().SessionLifespan(ctx))
 	session.AuthenticatedAt = authenticatedAt
 
-	session.SetSessionDeviceInformation(r.WithContext(ctx))
+	currentDevice := session.SetSessionDeviceInformation(r.WithContext(ctx))
 	session.SetAuthenticatorAssuranceLevel()
+
+	currentVisit := createCurrentVisit(session, currentDevice)
+	// perform impossible travel detection and store result in a current session
+	session.ImpossibleTravelDetectionResult = s.r.DetectImpossibleTravel(i.ID, currentVisit)
 
 	span.SetAttributes(
 		attribute.String("identity.available_aal", session.Identity.InternalAvailableAAL.String),
 	)
 
 	return nil
+}
+
+func createCurrentVisit(session *Session, device Device) (visit detector.Visit[crosscountry.Country]) {
+	return detector.Visit[crosscountry.Country]{
+		Time:        session.CreatedAt,
+		DeviceId:    device.ID,
+		GeoLocation: device.GeoLocationCountry,
+	}
 }
