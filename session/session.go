@@ -8,6 +8,8 @@ import (
 	"database/sql/driver"
 	"encoding/json"
 	"fmt"
+	"github.com/ory/kratos/session/impossibletravel/crosscountry"
+	"github.com/ory/kratos/session/impossibletravel/detector"
 	"net/http"
 	"strings"
 	"time"
@@ -57,6 +59,8 @@ type Device struct {
 
 	// Geo Location corresponding to the IP Address
 	Location *string `json:"location" faker:"ptr_geo_location" db:"location"`
+	// Country from Geo Location corresponding to the IP Address
+	GeoLocationCountry crosscountry.Country `json:"geoLocationCountry" faker:"geo_location_country" db:"geo_location_country"`
 
 	// Time of capture
 	CreatedAt time.Time `json:"-" faker:"-" db:"created_at"`
@@ -133,6 +137,12 @@ type Session struct {
 
 	// IdentityID is a helper struct field for gobuffalo.pop.
 	IdentityID uuid.UUID `json:"-" faker:"-" db:"identity_id"`
+
+	// Impossible Travel detection result.
+	//
+	// Indicates if session activity is flagged due to rapid geographical shifts deemed impossible.
+	// If set to "ImpossibleTravel" current session has been recognized as result of suspicious activity.
+	ImpossibleTravelDetectionResult detector.DetectionResult `json:"impossible_travel" db:"impossible_travel"`
 
 	// CreatedAt is a helper struct field for gobuffalo.pop.
 	CreatedAt time.Time `json:"-" faker:"-" db:"created_at"`
@@ -256,7 +266,7 @@ func NewInactiveSession() *Session {
 	}
 }
 
-func (s *Session) SetSessionDeviceInformation(r *http.Request) {
+func (s *Session) SetSessionDeviceInformation(r *http.Request) Device {
 	device := Device{
 		SessionID: s.ID,
 		IPAddress: pointerx.Ptr(httpx.ClientIP(r)),
@@ -277,6 +287,7 @@ func (s *Session) SetSessionDeviceInformation(r *http.Request) {
 	device.Location = pointerx.Ptr(strings.Join(clientGeoLocation, ", "))
 
 	s.Devices = append(s.Devices, device)
+	return device
 }
 
 func (s Session) Declassified() *Session {

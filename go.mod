@@ -118,6 +118,7 @@ require (
 	github.com/dgraph-io/ristretto/v2 v2.0.0 // indirect
 	github.com/jackc/pgx/v5 v5.6.0 // indirect
 	github.com/rjeczalik/notify v0.9.3 // indirect
+	github.com/stretchr/objx v0.5.2 // indirect
 	golang.org/x/term v0.27.0 // indirect
 	golang.org/x/time v0.8.0 // indirect
 	gopkg.in/alecthomas/kingpin.v2 v2.2.6 // indirect
